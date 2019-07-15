@@ -1,0 +1,21 @@
+﻿Name,Three.Letter.Code,One.Letter.Code,Hydropathy,Volume,Chemical,Physicochemical,Charge,Polarity,Hydrogen donor or acceptor atom
+Alanine,Ala,A,hydrophobic,very small,aliphatic,aliphatic,uncharged,nonpolar,none
+Arginine,Arg,R,hydrophilic,large,basic,basic,positive charged,polar,donor
+Asparagine,Asn,N,hydrophilic,small,amide,amide,uncharged,polar,donor and acceptor
+Aspartic acid,Asp,D,hydrophilic,small,acidic,acidic,negative charged,polar,acceptor
+Cysteine,Cys,C,hydrophobic,small,sulfur,sulfur,uncharged,nonpolar,none
+Glutamine,Gln,Q,hydrophilic,medium,amide,amide,uncharged,polar,donor and acceptor
+Glutamic acid,Glu,E,hydrophilic,medium,acidic,acidic,negative charged,polar,acceptor
+Glycine,Gly,G,neutral,very small,aliphatic,G,uncharged,nonpolar,none
+Histidine,His,H,neutral,medium,basic,basic,positive charged,polar,donor and acceptor
+Isoleucine,Ile,I,hydrophobic,large,aliphatic,aliphatic,uncharged,nonpolar,none
+Leucine,Leu,L,hydrophobic,large,aliphatic,aliphatic,uncharged,nonpolar,none
+Lysine,Lys,K,hydrophilic,large,basic,basic,positive charged,polar,donor
+Methionine,Met,M,hydrophobic,large,sulfur,sulfur,uncharged,nonpolar,none
+Phenylalanine,Phe,F,hydrophobic,very large,aromatic,F,uncharged,nonpolar,none
+Proline,Pro,P,neutral,small,aliphatic,P,uncharged,nonpolar,none
+Serine,Ser,S,neutral,very small,hydroxyl,hydroxyl,uncharged,polar,donor and acceptor
+Threonine,Thr,T,neutral,small,hydroxyl,hydroxyl,uncharged,polar,donor and acceptor
+Tryptophan,Trp,W,hydrophobic,very large,aromatic,W,uncharged,nonpolar,donor
+Tyrosine,Tyr,Y,neutral,very large,aromatic,Y,uncharged,polar,donor and acceptor
+Valine,Val,V,hydrophobic,medium,aliphatic,aliphatic,uncharged,nonpolar,none
