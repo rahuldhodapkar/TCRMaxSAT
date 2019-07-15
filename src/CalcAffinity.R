@@ -61,7 +61,7 @@ ucname2tlc <- hashmap(toupper(as.character(aa_info$Name)), as.character(aa_info$
 #' \dontrun{
 #' affinity('ILGG', 'GGGG')
 #' }
-affinity <- function(seq.1, seq.2, code.type='olc', binding.width = 4) {
+affinity <- function(seq.1, seq.2, code.type='olc', binding.width = 3) {
   # check input types
   if (is.character(seq.1) && length(seq.1) == 1 && code.type =='olc') {
     seq.1 <- unlist(strsplit(seq.1, ''));
@@ -105,12 +105,61 @@ affinity <- function(seq.1, seq.2, code.type='olc', binding.width = 4) {
   ));
 }
 
+
+#' Generate random amino acid sequence of defined length
+#'
+#' \code{random_aa} returns a random amino acid sequence
+#'
+#' @param n Integer length of the amino acid sequence desired
+#' @param code.type string, one of 'olc', 'tlc', or 'name', defining
+#'   in what form the amino acid codes will be
+#' @param binding.width Integer. the number of amino acids in the modeled CDR3-epitope contact
+#' @return a character vector of an amino acid sequence
+#' @examples
+#' random_aa(5)
+random_aa <- function(n = 7, code.type = 'olc') {
+  if (code.type == 'olc') {
+    char_bank <- as.character(aa_info$One.Letter.Code)
+  } else if (code.type == 'tlc') {
+    char_bank <- as.character(aa_info$Three.Letter.Code)
+  } else if (code.type == 'name') {
+    char_bank <- toupper(as.character(aa_info$Name))
+  }
+  
+  return(sample(char_bank, n, replace=T))
+}
+
 affinity(strreverse('CASSYSRTGSYEQYF'), 'LLWNGPMAV')
 affinity(strreverse('CASSQGLAYEQFF'), 'LLWNGPMAV')
 affinity(strreverse('CASSVEGPGELFF'), 'LLWNGPMAV')
 affinity('ILGGGCCCQL', 'LLWNGPMAV')
 
 affinity(strreverse('CASSSGQLTNTEAFF'), 'GLCTLVAML')
-affinity('CASSSGQLTNTEAFF', 'GLCTLVAML')
+affinity(strreverse('CASSFGVNSDYTF'), 'KGYVYQGL')
+
+tcr.seq <- 'SADRVGNT'
+tcr.seq.pruned <- 'SADRVGNT'
+epitope <- 'INFDFNTI'
+
+random_affinities <- c()
+
+for (i in seq(1,1000)) {
+  aff <- affinity(
+    paste0(random_aa(str_length(tcr.seq.pruned)), collapse=""),
+    epitope
+  )
+  random_affinities <- c(random_affinities, aff$min.rt.energy)
+}
+hist(random_affinities)
+sd(random_affinities)
+mean(random_affinities)
+
+actual_aff <- affinity(tcr.seq.pruned, epitope)
+actual_aff
+abs(mean(random_affinities) - actual_aff$min.rt.energy) / sd(random_affinities)
+
+
+
+
 
 
