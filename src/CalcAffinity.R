@@ -1,5 +1,5 @@
 #!/usr/bin/env R
-# TCRMaxSAT
+# CalcAffinity.R
 # Copyright (C) 2019    Rahul Dhodapkar
 
 # This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,11 @@
 
 library(hashmap)
 library(Matrix)
+library(stringr)
 library(dplyr)
+library(ggplot2)
+
+homo_sapiens_trb_vdjdb <- read.csv('./config/homo_sapiens_trb_vdjdb.tsv', header=T, sep='\t')
 
 strreverse <- function(x){ strsplit(x, NULL) %>% lapply(rev) %>% sapply(paste, collapse="") }
 
@@ -113,7 +117,6 @@ affinity <- function(seq.1, seq.2, code.type='olc', binding.width = 3) {
 #' @param n Integer length of the amino acid sequence desired
 #' @param code.type string, one of 'olc', 'tlc', or 'name', defining
 #'   in what form the amino acid codes will be
-#' @param binding.width Integer. the number of amino acids in the modeled CDR3-epitope contact
 #' @return a character vector of an amino acid sequence
 #' @examples
 #' random_aa(5)
@@ -129,37 +132,106 @@ random_aa <- function(n = 7, code.type = 'olc') {
   return(sample(char_bank, n, replace=T))
 }
 
-affinity(strreverse('CASSYSRTGSYEQYF'), 'LLWNGPMAV')
-affinity(strreverse('CASSQGLAYEQFF'), 'LLWNGPMAV')
-affinity(strreverse('CASSVEGPGELFF'), 'LLWNGPMAV')
-affinity('ILGGGCCCQL', 'LLWNGPMAV')
-
-affinity(strreverse('CASSSGQLTNTEAFF'), 'GLCTLVAML')
-affinity(strreverse('CASSFGVNSDYTF'), 'KGYVYQGL')
-
-tcr.seq <- 'SADRVGNT'
-tcr.seq.pruned <- 'SADRVGNT'
-epitope <- 'INFDFNTI'
-
-random_affinities <- c()
-
-for (i in seq(1,1000)) {
-  aff <- affinity(
-    paste0(random_aa(str_length(tcr.seq.pruned)), collapse=""),
-    epitope
-  )
-  random_affinities <- c(random_affinities, aff$min.rt.energy)
+#' Generate random amino acid sequence of defined length
+#'
+#' \code{random_cdr3} returns a random amino acid sequence
+#'
+#' @param n Integer length of the amino acid sequence desired
+#' @param code.type string, one of 'olc', 'tlc', or 'name', defining
+#'   in what form the amino acid codes will be
+#' @return a character vector of an amino acid sequence
+#' @examples
+#' random_cdr3()
+random_cdr3 <- function(n = 7, code.type = 'olc') {
+  cdr3_bank <- homo_sapiens_trb_vdjdb$CDR3
+  # WARNING "n" not yet supported.
+  # WARNING only olc supported currently.
+  
+  return(as.character(sample(cdr3_bank, 1)))
 }
-hist(random_affinities)
-sd(random_affinities)
-mean(random_affinities)
 
-actual_aff <- affinity(tcr.seq.pruned, epitope)
-actual_aff
-abs(mean(random_affinities) - actual_aff$min.rt.energy) / sd(random_affinities)
+#' Rate interaction of CDR3 against simulated interactions
+#'
+#' \code{simulate_ixns} runs simulated cdr3-epitope interactions
+#'   and ranks provided cdr3 against simulations.
+#'
+#' @param cdr3 String; AA sequence of the cdr3 region
+#' @param epitope String; AA sequence of the epitope
+#' @param num.sims Integer; number of simulations to run, default 1000
+#' @return mean energy of simulated sequences,
+#'   energy difference between tcr sequence and CDR3, as well as
+#'   a z-score for this difference
+#' @examples
+#' simulate_ixns('CASSEATGASYEQYF', 'LLWNGPMAV')
+simulate_ixns <- function(cdr3, epitope, num.sims = 1000, aa.generator=random_aa) {
+  simulated_rand_affinities <- c()
+  
+  for (i in seq(1, num.sims)) {
+    aff <- affinity(
+      paste0(aa.generator(str_length(cdr3)), collapse=""),
+      epitope
+    )
+    simulated_rand_affinities <- c(simulated_rand_affinities, aff$min.rt.energy)
+  }
+  actual_aff <- affinity(cdr3, epitope)
+  
+  return(list(
+    mean_sim_energy = mean(simulated_rand_affinities),
+    cdr3_energy = actual_aff$min.rt.energy,
+    sd_sim_energy = sd(simulated_rand_affinities),
+    diff_sim_cdr3 = mean(simulated_rand_affinities) - actual_aff$min.rt.energy,
+    z.score = (mean(simulated_rand_affinities) - actual_aff$min.rt.energy)/sd(simulated_rand_affinities)
+  ))
+}
 
+homo_sapiens_trb_vdjdb_hq <-subset(homo_sapiens_trb_vdjdb, Score >= 3)
 
+TRIM_FRONT <- 3;
+TRIM_BACK <- 3;
+set.seed(103)
+mean_sim_energies <- c()
+cdr3_energies <- c()
+diff_sim_cdr3s <- c()
+z_scores <- c()
+shuffled_ixs <- sample(seq(1, nrow(homo_sapiens_trb_vdjdb_hq)))
 
+for (i in shuffled_ixs[1:50]) {
+  print(i)
+  cdr3_seq <- strreverse(as.character(homo_sapiens_trb_vdjdb_hq$CDR3[[i]]))
+  cdr3_trimmed <- substr(cdr3_seq, TRIM_FRONT, str_length(cdr3_seq) - TRIM_BACK)
+  simout <- simulate_ixns(cdr3_trimmed, 
+                          as.character(homo_sapiens_trb_vdjdb_hq$Epitope[[i]]),
+                          aa.generator = random_cdr3)
+  mean_sim_energies <- c(mean_sim_energies, simout$mean_sim_energy)
+  cdr3_energies <- c(cdr3_energies, simout$cdr3_energy)
+  diff_sim_cdr3s <- c(diff_sim_cdr3s, simout$diff_sim_cdr3)
+  z_scores <- c(z_scores, simout$z.score)
+}
 
+hist(mean_sim_energies)
+hist(cdr3_energies)
+hist(diff_sim_cdr3s)
+hist(z_scores)
 
+df <- data.frame(
+  energy = c(mean_sim_energies, cdr3_energies),
+  source = c(rep("Sim", length(mean_sim_energies)),
+            rep("CDR3", length(cdr3_energies)))
+)
+df$source <- as.factor(df$source)
+mu <- df %>% 
+        group_by(source) %>%
+        summarise(grp.mean=mean(energy))
+
+ggplot(df, aes(x=energy, fill=source)) +
+  geom_density(alpha=0.4) + 
+  geom_vline(data=mu, aes(xintercept=grp.mean, color=source),
+               linetype="dashed") +
+  ggtitle("RT Energy of Linearized Binding Model")
+
+ggplot(data.frame(energy = z_scores), aes(x=energy)) + 
+  geom_density(alpha=0.4)
+
+ggplot(data.frame(energy = diff_sim_cdr3s), aes(x=energy)) + 
+  geom_density(alpha=0.4)
 
